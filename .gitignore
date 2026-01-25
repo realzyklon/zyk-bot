@@ -139,5 +139,5 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # files del bot
-./zexin-session
+zexin-session/
 database.json
