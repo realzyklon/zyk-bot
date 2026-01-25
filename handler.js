@@ -5,7 +5,6 @@ export default async function handler(conn, m) {
     try {
         if (!m.message) return;
 
-        // --- FIX DECODIFICA INTERAZIONI & LOG ---
         if (m.mtype === 'messageContextInfo') {
             m.message = m.message.listResponseMessage || m.message.buttonsResponseMessage || m.message;
             m.mtype = Object.keys(m.message)[0];
@@ -20,7 +19,6 @@ export default async function handler(conn, m) {
         m.mtype = Object.keys(m.message)[0];
         m.msg = m.message[m.mtype];
 
-        // Estrazione testo da bottoni, liste e quick replies
         let text = "";
         if (m.mtype === 'conversation') text = m.message.conversation;
         else if (m.mtype === 'extendedTextMessage') text = m.message.extendedTextMessage.text;
@@ -37,7 +35,6 @@ export default async function handler(conn, m) {
 
         m.text = text || "";
 
-        // Log di debug in console per vedere cosa legge il bot
         if (m.text) {
             console.log(`\x1b[32m[READ]\x1b[0m Contenuto letto: ${m.text}`);
         }

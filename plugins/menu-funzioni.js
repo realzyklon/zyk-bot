@@ -4,15 +4,13 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin }) =
   const jid = m.chat;
   const userName = m.pushName || 'Utente';
 
-  // 1. Recupero immagine del gruppo
   let groupPfp;
   try {
     groupPfp = await conn.profilePictureUrl(jid, 'image');
   } catch (e) {
-    groupPfp = 'https://i.ibb.co/kVdFLyGL/sam.jpg'; 
+    groupPfp = 'https://i.ibb.co/kVdFLyGL/sam.jpg'; // sam non mi toccare mentre dormo perchè ho messo la tua immagine since non ho fallback e mi scoccio di crearla <3
   }
 
-  // 2. Fake Contact Zexin-Bot
   const fkontak_zexin = {
     key: { participant: '0@s.whatsapp.net', remoteJid: '0@s.whatsapp.net', fromMe: false, id: 'ZexinSystem' },
     message: {
@@ -23,7 +21,6 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin }) =
     }
   };
 
-  // --- MENU CAROSELLO (Senza Bottoni per stabilità totale) ---
   if (!args.length) {
     const adminFeatures = [
       { key: 'rileva', name: '📡 Monitoraggio', desc: 'Rileva eventi e modifiche nel gruppo.' },
@@ -65,7 +62,6 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin }) =
     return await conn.relayMessage(jid, msg, { quoted: fkontak_zexin });
   }
 
-  // --- LOGICA DI ESECUZIONE (Rimasta invariata) ---
   let isEnable = /attiva|on|1/i.test(command);
   if (/disattiva|off|0/i.test(command)) isEnable = false;
 
