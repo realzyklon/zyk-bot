@@ -8,6 +8,8 @@ import qrcode from "qrcode-terminal";
 import { pathToFileURL } from 'url';
 import chokidar from 'chokidar';
 import handler from "./handler.js";
+import print from "./lib/print.js";
+import { groupUpdate } from './funzioni/permessi.js'
 import './config.js';
 
 async function startBot() {
@@ -83,6 +85,15 @@ async function startBot() {
         ignoreInitial: true
     });
 
+    watcher.on('add', async (filePath) => {
+        const fileName = path.basename(filePath);
+        if (filePath.includes('plugins/')) {
+            const pluginPath = pathToFileURL(path.resolve(filePath)).href;
+            const plugin = await import(`${pluginPath}?update=${Date.now()}`);
+            global.plugins[fileName] = plugin.default || plugin;
+        }
+    });
+
     watcher.on('change', async (filePath) => {
         const fileName = path.basename(filePath);
         const fileUrl = pathToFileURL(path.resolve(filePath)).href;
@@ -95,6 +106,32 @@ async function startBot() {
     });
 
     conn.ev.on('creds.update', saveCreds);
+
+    conn.ev.on('messages.upsert', async (chatUpdate) => {
+        if (!chatUpdate.messages || !chatUpdate.messages[0]) return;
+        const m = chatUpdate.messages[0];
+        if (m.key.fromMe) return;
+        await handler(conn, m);
+    });
+
+    // Fix: Aggiunto l'ascolto per le promozioni e retrocessioni
+    conn.ev.on('group-participants.update', async (update) => {
+        const { id } = update;
+        // Aggiorna la cache dei metadati per evitare conflitti LID/JID
+        await conn.groupMetadata(id, true).catch(() => {}); 
+        // Invia i log al file permessi.js
+        await groupUpdate(conn, update);
+        // Stampa i log in console
+        await print(update, conn, true);
+    });
+
+    // Fix: Rileva modifiche alle impostazioni del gruppo
+    conn.ev.on('groups.update', async (updates) => {
+        for (const update of updates) {
+            await groupUpdate(conn, update);
+        }
+    });
+
     conn.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
         if (qr) {
@@ -111,13 +148,6 @@ async function startBot() {
                 process.exit(1); 
             }
         }
-    });
-
-    conn.ev.on('messages.upsert', async (chatUpdate) => {
-        if (!chatUpdate.messages || !chatUpdate.messages[0]) return;
-        const m = chatUpdate.messages[0];
-        if (m.key.fromMe) return;
-        await handler(conn, m);
     });
     
     return conn;

@@ -6,44 +6,47 @@ export async function groupUpdate(conn, anu) {
         
         if (!global.db || !global.db.data) return
         
-        const chat = global.db.data.chats?.[id] || global.db.groups?.[id]
-        
-        if (!chat || (!chat.rileva && !chat.monitoraggio)) {
-            return
-        }
+        // Controllo se la funzione rileva è attiva per questo gruppo
+        const chat = global.db.data.groups?.[id] || global.db.data.chats?.[id]
+        if (!chat || !chat.rileva) return
 
-        const user = participants[0]
-        const from = author || id 
-        
-        let displayName = action === 'promote' ? `🎋 PROMOZIONE` : `🎐 RETROCESSIONE`
+        let displayName = ""
+        let testo = ""
+
+        // Gestiamo solo promozioni e retrocessioni
+        if (action === 'promote' || action === 'demote') {
+            const user = participants[0]
+            displayName = action === 'promote' ? `🎋 PROMOZIONE` : `🎐 RETROCESSIONE`
+            testo = action === 'promote' 
+                ? `*@${user.split('@')[0]}* è ora un amministratore.`
+                : `*@${user.split('@')[0]}* non è più un amministratore.`
+        } else {
+            return // Esci se l'azione non è promo/demote
+        }
 
         const fakeContact = {
             key: { participant: '0@s.whatsapp.net', remoteJid: 'status@broadcast' },
             message: {
                 contactMessage: {
-                    displayName: `${displayName}`,
-                    vcard: `BEGIN:VCARD\nVERSION:3.0\nN:;User;;;\nFN:User\nitem1.TEL;waid=${user.split('@')[0]}:${user.split('@')[0]}\nitem1.X-ABLabel:PSTN\nEND:VCARD`
+                    displayName: displayName,
+                    vcard: `BEGIN:VCARD\nVERSION:3.0\nN:;User;;;\nFN:User\nitem1.TEL;waid=${(author || id).split('@')[0]}:${(author || id).split('@')[0]}\nEND:VCARD`
                 }
             }
         }
 
-        let testo = action === 'promote' 
-            ? `@${user.split('@')[0]} è ora un amministratore.`
-            : `@${user.split('@')[0]} non è più amministratore.`
-
         await conn.sendMessage(id, { 
             text: testo, 
-            mentions: [from, user],
+            mentions: [participants[0], author].filter(Boolean),
             contextInfo: {
                 isForwarded: true,
                 forwardedNewsletterMessageInfo: {
-                    newsletterJid: '120363303102327657@newsletter',
-                    newsletterName: 'Zexin Updates 🪷'
+                    newsletterJid: global.canale.id,
+                    newsletterName: global.canale.nome
                 }
             }
         }, { quoted: fakeContact })
 
     } catch (e) {
-        console.error(chalk.red('[Errore Funzione Permessi]:'), e)
+        console.error(chalk.red('[Errore Log Permessi]:'), e)
     }
 }

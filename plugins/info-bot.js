@@ -1,16 +1,19 @@
 import os from 'os'
 
-let handler = async (m, { conn, participants }) => {
+let handler = async (m, { conn }) => {
     const uptime = process.uptime()
     const muptime = clockString(uptime * 1000)
     
-    const totalUsers = Object.keys(global.db.users).length
+    const totalUsers = Object.keys(global.db.data?.users || {}).length
+    const groupsData = await conn.groupFetchAllParticipating().catch(() => ({}))
+    const totalGroups = Object.keys(groupsData).length
     const totalChats = Object.keys(conn.chats || {}).length
-    const totalGroups = Object.values(conn.chats || {}).filter(v => v.id.endsWith('@g.us')).length
 
     const botJid = conn.decodeJid(conn.user.id)
-    const botInGroup = participants ? participants.find(u => conn.decodeJid(u.id) === botJid) : null
-    const isBotAdmin = botInGroup?.admin === 'admin' || botInGroup?.admin === 'superadmin'
+    const groupMetadata = m.isGroup ? await conn.groupMetadata(m.chat).catch(() => ({})) : {}
+    const participants = groupMetadata.participants || []
+    const botInGroup = participants.find(u => conn.decodeJid(u.id) === botJid)
+    const isBotAdmin = botInGroup?.admin?.includes('admin') || false
 
     let info = `⛩️ ╰┈➤ *STATO DI ${global.bot}* 🏮\n\n`
     info += `🉐 *Uptime:* \`${muptime}\`\n`
@@ -18,8 +21,8 @@ let handler = async (m, { conn, participants }) => {
     info += `🛡️ *Admin Gruppo:* ${isBotAdmin ? '✅ SI' : '❌ NO'}\n\n`
     info += `📊 *Statistiche:*\n`
     info += `╰┈➤ 👤 Utenti Database: \`${totalUsers}\`\n`
-    info += `╰┈➤ 👥 Gruppi Attivi: \`${totalGroups}\`\n`
-    info += `╰┈➤ 💬 Chat Totali: \`${totalChats}\`\n\n`
+    info += `╰┈➤ 👥 Gruppi Totali: \`${totalGroups}\`\n`
+    info += `╰┈➤ 💬 Chat Attive: \`${totalChats}\`\n\n`
     info += `💻 *Sistema:*\n`
     info += `╰┈➤ 🔋 RAM: \`${(process.memoryUsage().heapUsed / 1024 / 1024).toFixed(2)} MB\`\n`
     info += `╰┈➤ 🏛️ OS: \`${os.platform()}\`\n\n`

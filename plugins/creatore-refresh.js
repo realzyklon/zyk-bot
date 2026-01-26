@@ -21,8 +21,7 @@ let handler = async (m, { conn, isOwner }) => {
         let info = `✅ ╰┈➤ *Sincronizzazione completata!*\n\n`
         info += `🏮 *Gruppi rilevati:* \`${groups.length}\`\n`
         info += `🛡️ *Stato Admin:* Aggiornato\n`
-        info += `🉐 *Database:* Sincronizzato\n\n`
-        info += `🧧 _Ora i controlli isBotAdmin dovrebbero funzionare correttamente._`
+        info += `🉐 *Database:* Sincronizzato`
 
         await conn.sendMessage(m.chat, { 
             text: info,
