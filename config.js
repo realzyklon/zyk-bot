@@ -8,9 +8,15 @@ global.owner = [['212614769337', 'Zexin']]
 global.authFile = 'zexin-session'
 global.prefix = /^[./!#]/
 
+
+/* inserisci le tue API Key al posto di zexin-bot
+ per far sii che funzionino i comandi associati */
+ 
 global.ApiKeys = {
-    gemini: 'tua_key',
-    removebg: 'FEx4CYmYN1QRQWD1mbZp87jV'
+    gemini: 'zexin-bot',
+    removebg: 'zexin-bot',
+    browserless: 'zexin-bot',
+    lastfm: 'zexinbot'
 }
 
 global.immagini = [
