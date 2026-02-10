@@ -27,6 +27,7 @@
     "node-fetch": "^3.3.0",
     "pino": "^8.16.1",
     "yargs": "^17.7.2",
-    "youtube-search-api": "2.0.1"
+    "youtube-search-api": "2.0.1",
+    "qrcode-terminal":"0.12.0"
   }
 }
