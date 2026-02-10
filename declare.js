@@ -12,12 +12,13 @@ import print from "./lib/print.js";
 import { groupUpdate } from './funzioni/admin/permessi.js';
 import { eventsUpdate } from "./funzioni/admin/welcome-addio.js";
 import { checkConfig } from './lib/configInit.js';
-checkConfig(); 
-
-import('./config.js');
 
 async function startBot() {
-    const { state, saveCreds } = await useMultiFileAuthState(`./${global.authFile}`);
+    checkConfig(); 
+    
+    await import(`./config.js?update=${Date.now()}`);
+
+    const { state, saveCreds } = await useMultiFileAuthState(`./${global.authFile || 'declare-session'}`);
     const { version } = await fetchLatestBaileysVersion();
 
     const printHeader = () => {
@@ -34,29 +35,29 @@ async function startBot() {
 
     printHeader();
 
-    const conn = makeWASocket({
+    const conn = makeWASocket({ 
         version,
         logger: pino({ level: 'silent' }),
         printQRInTerminal: false,
         auth: state,
+        shouldSyncHistoryMessage: () => false,
+        markOnlineOnConnect: false,
         browser: ['declare', 'Safari', '3.0']
     });
 
     conn.ev.on('call', async (call) => {
-    if (global.db.data.settings[conn.user.jid]?.anticall) {
-        for (const callData of call) {
-            if (callData.status === 'offer') {
-                const ownerNumber = global.owner[0][0].replace(/[^0-9]/g, '')
-                
-                await conn.rejectCall(callData.id, callData.from)
-                
-                await conn.sendMessage(callData.from, { 
-                    text: `🏮 ╰┈➤ *SISTEMA ANTICALL*\n\nIl mio creatore ha disattivato le chiamate. Non posso rispondere.\n\n🎐 _Se hai bisogno, contatta il proprietario qui: wa.me/${ownerNumber}_`
-                })
+        if (global.db?.data?.settings?.[conn.user.jid]?.anticall) {
+            for (const callData of call) {
+                if (callData.status === 'offer') {
+                    const ownerNumber = global.owner[0][0].replace(/[^0-9]/g, '')
+                    await conn.rejectCall(callData.id, callData.from)
+                    await conn.sendMessage(callData.from, { 
+                        text: `🏮 ╰┈➤ *SISTEMA ANTICALL*\n\nIl mio creatore ha disattivato le chiamate. Non posso rispondere.\n\n🎐 _Se hai bisogno, contatta il proprietario qui: wa.me/${ownerNumber}_`
+                    })
+                }
             }
         }
-    }
-})
+    })
 
     conn.decodeJid = (jid) => {
         if (!jid) return jid;
@@ -135,14 +136,13 @@ async function startBot() {
     });
 
     conn.ev.on('group-participants.update', async (update) => {
-    const { id } = update;
-    await conn.groupMetadata(id, true).catch(() => {}); 
-    
-    await eventsUpdate(conn, update);
-    await groupUpdate(conn, update);
-    
-    await print(update, conn, true);
-});
+        const { id } = update;
+        await conn.groupMetadata(id, true).catch(() => {}); 
+        await eventsUpdate(conn, update);
+        await groupUpdate(conn, update);
+        await print(update, conn, true);
+    });
+
     conn.ev.on('groups.update', async (updates) => {
         for (const update of updates) {
             await groupUpdate(conn, update);
@@ -162,7 +162,7 @@ async function startBot() {
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.code;
             if (reason !== DisconnectReason.loggedOut) {
-                process.exit(1); 
+                startBot(); 
             }
         }
     });

@@ -7,6 +7,7 @@
 ## 📥 Come installare ⋆˙⟡
 
 ⚠️ ⤷ ゛*Questo bot è compatibile con dispositivi Android e macchine come Windows 10+, MacOS e Linux.*
+⚠️ ⤷ ゛*Se durante l'avvio il bot si connette con successo ma restituisce errore di Request Time-out ERR: 408, riavviate il bot si connetterà senza problemi.*
 
 1️⃣ -  Tutorial Android
 
@@ -19,6 +20,10 @@
 
 ```bash  
 termux-setup-storage
+```
+
+```bash
+termux-wake-lock
 ```
 ```bash  
 pkg upgrade && pkg update -y
