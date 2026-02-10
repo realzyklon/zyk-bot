@@ -18,7 +18,7 @@ async function startBot() {
     
     await import(`./config.js?update=${Date.now()}`);
 
-    const { state, saveCreds } = await useMultiFileAuthState(`./${global.authFile || 'declare-session'}`);
+    const { state, saveCreds } = await useMultiFileAuthState(`./${global.authFile || 'declare'}`);
     const { version } = await fetchLatestBaileysVersion();
 
     const printHeader = () => {
@@ -42,6 +42,9 @@ async function startBot() {
         auth: state,
         shouldSyncHistoryMessage: () => false,
         markOnlineOnConnect: false,
+        connectTimeoutMs: 60000,
+        defaultQueryTimeoutMs: 0,
+        keepAliveIntervalMs: 10000,
         browser: ['declare', 'Safari', '3.0']
     });
 
