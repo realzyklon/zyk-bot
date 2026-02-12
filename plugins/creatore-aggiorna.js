@@ -21,7 +21,7 @@ const handler = async (m, { conn, isOwner }) => {
     await conn.sendPresenceUpdate('composing', m.chat)
     
     try {
-        const gitUrl = 'https://github.com/tuo-username/tuo-repo.git'
+        const gitUrl = 'https://github.com/dichiararee/declare.git'
         
         const responseStart = `
   ╭┈  『 🔄 』 ` + "`stato` ─ " + ` *_In corso..._*
