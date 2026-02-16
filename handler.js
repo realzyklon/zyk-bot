@@ -8,33 +8,40 @@ import store from './lib/store.js'
 import fs from 'fs'
 import path from 'path'
 
+const decodeJid = (jid) => {
+    if (!jid) return jid
+    if (/:\d+@/gi.test(jid)) {
+        const decode = jid.split(':')[0]
+        const server = jid.split('@')[1]
+        return decode + '@' + server
+    }
+    return jid
+}
+
+const areJidsSameUser = (jid1, jid2) => {
+    if (!jid1 || !jid2) return false
+    const n1 = jid1.split('@')[0].split(':')[0].replace(/[^0-9]/g, '')
+    const n2 = jid2.split('@')[0].split(':')[0].replace(/[^0-9]/g, '')
+    return n1 === n2
+}
+
 function initDatabase() {
     const dbPath = path.join(process.cwd(), 'database.json')
-    
     if (!fs.existsSync(dbPath)) {
-        const initialData = {
-            users: {},
-            groups: {},
-            chats: {},
-            settings: {}
-        }
-        
+        const initialData = { users: {}, groups: {}, chats: {}, settings: {} }
         fs.writeFileSync(dbPath, JSON.stringify(initialData, null, 2), 'utf-8')
-        console.log(chalk.green('[Database] ✓ File database.json creato con successo!'))
     }
-    
     try {
         const data = JSON.parse(fs.readFileSync(dbPath, 'utf-8'))
-        global.db = global.db || {}
-        global.db.data = data
-        
-        global.db.data.users = global.db.data.users || {}
-        global.db.data.groups = global.db.data.groups || {}
-        global.db.data.chats = global.db.data.chats || {}
-        global.db.data.settings = global.db.data.settings || {}
-        
+        global.db = {
+            data: {
+                users: data.users || {},
+                groups: data.groups || {},
+                chats: data.chats || {},
+                settings: data.settings || {}
+            }
+        }
     } catch (e) {
-        console.error(chalk.red('[Database Error]:'), e.message)
         global.db = { data: { users: {}, groups: {}, chats: {}, settings: {} } }
     }
 }
@@ -42,19 +49,16 @@ function initDatabase() {
 function saveDatabase() {
     const dbPath = path.join(process.cwd(), 'database.json')
     try {
-        fs.writeFileSync(dbPath, JSON.stringify(global.db.data, null, 2), 'utf-8')
+        if (global.db?.data) {
+            fs.writeFileSync(dbPath, JSON.stringify(global.db.data, null, 2), 'utf-8')
+        }
     } catch (e) {
-        console.error(chalk.red('[Database Save Error]:'), e.message)
+        console.error(e.message)
     }
 }
 
 initDatabase()
-
-setInterval(() => {
-    if (global.db?.data) {
-        saveDatabase()
-    }
-}, 5000)
+setInterval(saveDatabase, 5000)
 
 export default async function handler(conn, chatUpdate) {
     if (!chatUpdate) return
@@ -68,134 +72,126 @@ export default async function handler(conn, chatUpdate) {
         m = smsg(conn, m)
         if (!m || !m.message) return
 
+        const msgType = Object.keys(m.message)[0]
+        const msgContent = m.message[msgType]
         let txt = m.message.conversation || 
                   m.message.extendedTextMessage?.text || 
                   m.message.imageMessage?.caption || 
                   m.message.videoMessage?.caption || 
-                  m.message.buttonsResponseMessage?.selectedButtonId || 
-                  m.message.listResponseMessage?.singleSelectReply?.selectedRowId || 
-                  m.message.templateButtonReplyMessage?.selectedId || 
-                  m.message.interactiveResponseMessage?.body?.text ||
-                  m.msg?.text || 
-                  m.msg?.caption || 
+                  msgContent?.text || 
+                  msgContent?.caption || 
                   m.text || ''
         
         m.text = txt.trim()
 
-        const msg = m.message
-        const type = Object.keys(msg)[0]
-        const contextInfo = msg[type]?.contextInfo
-
+        const contextInfo = msgContent?.contextInfo
         if (contextInfo?.quotedMessage) {
             const quotedMsg = {
                 key: {
                     remoteJid: m.chat,
                     fromMe: contextInfo.participant === conn.decodeJid(conn.user.id),
                     id: contextInfo.stanzaId,
-                    participant: contextInfo.participant || m.chat
+                    participant: contextInfo.participant
                 },
                 message: contextInfo.quotedMessage,
                 messageTimestamp: contextInfo.quotedStanzaID || Date.now()
             }
-            
-            let quoted = smsg(conn, quotedMsg)
-            
-            const qType = Object.keys(contextInfo.quotedMessage)[0]
-            if (contextInfo.quotedMessage[qType]?.mimetype && !quoted.mimetype) {
-                quoted.mimetype = contextInfo.quotedMessage[qType].mimetype
-            }
-            
-            if (!quoted.mediaMessage && contextInfo.quotedMessage[qType]?.url) {
-                const mediaTypes = ['imageMessage', 'videoMessage', 'audioMessage', 'stickerMessage', 'documentMessage']
-                if (mediaTypes.includes(qType)) {
-                    quoted.mediaMessage = contextInfo.quotedMessage
-                    quoted.mediaType = qType
-                }
-            }
-            
-            m.quoted = quoted
+            m.quoted = smsg(conn, quotedMsg)
         }
 
         const jid = m.chat
         const isGroup = jid.endsWith('@g.us')
         const isChannel = jid.endsWith('@newsletter')
-        const botId = conn.decodeJid(conn.user.id)
         
-        const sender = m.sender
-        m.senderLid = m.key.participant?.endsWith('@lid') ? m.key.participant : 'N/A'
-        const senderNum = sender.replace(/[^0-9]/g, '')
+        const botId = decodeJid(conn.user.id)
+        const sender = decodeJid(m.sender)
+        const senderLid = m.key.participant?.endsWith('@lid') ? decodeJid(m.key.participant) : null
+        
+        m.senderLid = senderLid || 'N/A'
+        
+        const senderNum = sender.split('@')[0].replace(/[^0-9]/g, '')
         const isOwner = global.owner.some(o => o[0].replace(/[^0-9]/g, '') === senderNum)
 
         let isAdmin = false
         let isBotAdmin = false
+        let isRealAdmin = false 
         let participants = []
-        let groupMetadata = {}
+        let groupAdmins = []
 
         if (isGroup) {
-            groupMetadata = await conn.groupMetadata(jid).catch(() => ({}))
-            participants = groupMetadata.participants || []
+            try {
+                const groupMetadata = await conn.groupMetadata(jid)
+                participants = groupMetadata.participants || []
+            } catch (e) {
+                participants = []
+            }
             
-            const userObj = participants.find(p => 
-                p.id === sender || p.id === m.senderLid || p.lid === sender || p.lid === m.senderLid
-            )
-            const botObj = participants.find(p => p.id === botId || p.id === conn.user.lid)
+            const userObj = participants.find(p => {
+                const pJid = p.jid ? decodeJid(p.jid) : null
+                const pId = decodeJid(p.id)
+                
+                if (pJid && areJidsSameUser(pJid, sender)) return true
+                if (areJidsSameUser(pId, sender)) return true
+                
+                if (senderLid) {
+                    const pLid = p.lid ? decodeJid(p.lid) : null
+                    if (pLid && areJidsSameUser(pLid, senderLid)) return true
+                    if (pId.endsWith('@lid') && areJidsSameUser(pId, senderLid)) return true
+                }
+                return false
+            })
 
-            isAdmin = userObj?.admin !== null || isOwner
-            isBotAdmin = botObj?.admin !== null
+            const botObj = participants.find(p => {
+                const pJid = p.jid ? decodeJid(p.jid) : null
+                const pId = decodeJid(p.id)
+                
+                if (pJid && areJidsSameUser(pJid, botId)) return true
+                if (areJidsSameUser(pId, botId)) return true
+                
+                if (conn.user.lid) {
+                    const botLid = decodeJid(conn.user.lid)
+                    const pLid = p.lid ? decodeJid(p.lid) : null
+                    if (pLid && areJidsSameUser(pLid, botLid)) return true
+                    if (pId.endsWith('@lid') && areJidsSameUser(pId, botLid)) return true
+                }
+                return false
+            })
+
+            isRealAdmin = (userObj?.admin === 'admin' || userObj?.admin === 'superadmin')
+            isBotAdmin = (botObj?.admin === 'admin' || botObj?.admin === 'superadmin')
+            isAdmin = isRealAdmin || isOwner
+
+            groupAdmins = participants.filter(p => p.admin === 'admin' || p.admin === 'superadmin')
         } else {
             isAdmin = isOwner
+            isRealAdmin = false
         }
 
         m.isAdmin = isAdmin
         m.isBotAdmin = isBotAdmin
         m.isOwner = isOwner
+        m.isRealAdmin = isRealAdmin
+        m.groupAdmins = groupAdmins
+
         m.userRole = isOwner ? 'OWNER' : (isAdmin ? 'ADMIN' : 'MEMBRO')
         m.botRole = isBotAdmin ? 'ADMIN' : 'MEMBRO'
 
-        if (!global.db?.data) {
-            initDatabase()
+        if (!global.db.data.users[sender]) {
+            global.db.data.users[sender] = { messages: 0, warns: {} }
         }
-
-        if (sender) {
-            if (!global.db.data.users[sender]) {
-                global.db.data.users[sender] = {
-                    messages: 0,
-                    warns: {}
-                }
-            }
-            global.db.data.users[sender].messages = (global.db.data.users[sender].messages || 0) + 1
-        }
+        global.db.data.users[sender].messages += 1
 
         if (isGroup) {
-            // Chat di gruppo
             if (!global.db.data.groups[jid]) {
-                global.db.data.groups[jid] = {
-                    messages: 0,
-                    rileva: false,
-                    welcome: true,
-                    antilink: true
-                }
+                global.db.data.groups[jid] = { messages: 0, rileva: false, welcome: true, antilink: true }
             }
-            global.db.data.groups[jid].messages = (global.db.data.groups[jid].messages || 0) + 1
-            
+            global.db.data.groups[jid].messages += 1
         } else if (isChannel) {
-            // Canale (newsletter)
-            if (!global.db.data.chats[jid]) {
-                global.db.data.chats[jid] = {
-                    messages: 0,
-                    type: 'channel'
-                }
-            }
-            global.db.data.chats[jid].messages = (global.db.data.chats[jid].messages || 0) + 1
-            
+            if (!global.db.data.chats[jid]) global.db.data.chats[jid] = { messages: 0, type: 'channel' }
+            global.db.data.chats[jid].messages += 1
         } else {
-            if (!global.db.data.chats[jid]) {
-                global.db.data.chats[jid] = {
-                    messages: 0,
-                    type: 'private'
-                }
-            }
-            global.db.data.chats[jid].messages = (global.db.data.chats[jid].messages || 0) + 1
+            if (!global.db.data.chats[jid]) global.db.data.chats[jid] = { messages: 0, type: 'private' }
+            global.db.data.chats[jid].messages += 1
         }
 
         if (isGroup && global.db.data.groups[jid]?.antilink) {
@@ -209,11 +205,7 @@ export default async function handler(conn, chatUpdate) {
         await antiPrivato.call(conn, m, { isOwner })
         
         if (global.db.data.settings?.[botId]?.ai_rispondi && m.text) {
-            try {
-                await rispondiGemini(m, { conn, isOwner })
-            } catch (e) {
-                console.error(chalk.red('[Gemini Error]:'), e.message)
-            }
+            try { await rispondiGemini(m, { conn, isOwner }) } catch (e) {}
         }
 
         const messageText = m.text || ''
@@ -252,7 +244,7 @@ export default async function handler(conn, chatUpdate) {
                     await plugin(m, { 
                         conn, args, text, usedPrefix, command, 
                         isOwner, isAdmin, isBotAdmin, 
-                        participants, groupMetadata, isGroup 
+                        participants, groupAdmins, isGroup 
                     })
                 } catch (e) {
                     console.error(e)
