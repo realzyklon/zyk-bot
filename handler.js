@@ -6,7 +6,12 @@ import rispondiGemini from './funzioni/owner/rispondi.js'
 import { antilink } from './funzioni/admin/antilink.js'
 import store from './lib/store.js'
 import fs from 'fs'
+import { promises as fsAsync } from 'fs'
 import path from 'path'
+
+// Flag per ottimizzazione scritture DB
+let dbDirty = false
+let isSaving = false
 
 const decodeJid = (jid) => {
     if (!jid) return jid
@@ -49,21 +54,60 @@ function initDatabase() {
     }
 }
 
-function saveDatabase() {
+async function saveDatabase() {
+    if (!dbDirty || !global.db?.data || isSaving) return
+    isSaving = true
     const dbPath = path.join(process.cwd(), 'database.json')
     try {
-        if (global.db?.data) {
-            fs.writeFileSync(dbPath, JSON.stringify(global.db.data, null, 2), 'utf-8')
+        dbDirty = false 
+        
+        // Pulizia metadata inutili per abbassare enormemente il peso del file
+        const cleanDb = ['chats', 'groups']
+        for (const type of cleanDb) {
+            for (const jid in global.db.data[type]) {
+                const chatData = global.db.data[type][jid]
+                if (chatData) {
+                    delete chatData.metadata
+                    delete chatData.participants
+                    delete chatData.desc
+                    delete chatData.owner
+                    delete chatData.ownerLid
+                    delete chatData.subjectOwner
+                    delete chatData.subjectOwnerLid
+                    delete chatData.subjectTime
+                    delete chatData.size
+                    delete chatData.creation
+                    delete chatData.descId
+                    delete chatData.descTime
+                    delete chatData.linkedParent
+                    delete chatData.restrict
+                    delete chatData.announce
+                    delete chatData.isCommunity
+                    delete chatData.isCommunityAnnounce
+                    delete chatData.joinApprovalMode
+                    delete chatData.memberAddMode
+                    
+                    // Rimuove i gruppi salvati per sbaglio in chats
+                    if (type === 'chats' && jid.endsWith('@g.us')) {
+                        delete global.db.data.chats[jid]
+                    }
+                }
+            }
         }
+
+        await fsAsync.writeFile(dbPath, JSON.stringify(global.db.data, null, 2), 'utf-8')
     } catch (e) {
-        console.error(e.message)
+        console.error(chalk.red('[DB Save Error]:'), e.message)
+        dbDirty = true 
+    } finally {
+        isSaving = false
     }
 }
 
 initDatabase()
 
 if (!global.db_interval) {
-    global.db_interval = setInterval(saveDatabase, 5000)
+    global.db_interval = setInterval(saveDatabase, 15000)
 }
 
 export default async function handler(conn, chatUpdate) {
@@ -130,11 +174,16 @@ export default async function handler(conn, chatUpdate) {
         let groupAdmins = []
 
         if (isGroup) {
-            try {
-                const groupMetadata = await conn.groupMetadata(jid)
-                participants = groupMetadata.participants || []
-            } catch (e) {
-                participants = []
+            // Usa la cache se possibile, altrimenti scarica i partecipanti
+            participants = conn.chats?.[jid]?.metadata?.participants || []
+            
+            if (!participants.length) {
+                try {
+                    const groupMetadata = await conn.groupMetadata(jid)
+                    participants = groupMetadata.participants || []
+                } catch (e) {
+                    participants = []
+                }
             }
             
             const userObj = participants.find(p => {
@@ -191,18 +240,22 @@ export default async function handler(conn, chatUpdate) {
             global.db.data.users[sender] = { messages: 0, warns: {} }
         }
         global.db.data.users[sender].messages += 1
+        dbDirty = true
 
         if (isGroup) {
             if (!global.db.data.groups[jid]) {
                 global.db.data.groups[jid] = { messages: 0, rileva: false, welcome: true, antilink: true }
             }
             global.db.data.groups[jid].messages += 1
+            dbDirty = true
         } else if (isChannel) {
             if (!global.db.data.chats[jid]) global.db.data.chats[jid] = { messages: 0, type: 'channel' }
             global.db.data.chats[jid].messages += 1
+            dbDirty = true
         } else {
             if (!global.db.data.chats[jid]) global.db.data.chats[jid] = { messages: 0, type: 'private' }
             global.db.data.chats[jid].messages += 1
+            dbDirty = true
         }
 
         if (isGroup && global.db.data.groups[jid]?.antilink) {

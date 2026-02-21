@@ -14,6 +14,14 @@ import { eventsUpdate } from "./funzioni/admin/welcome-addio.js";
 import { checkConfig } from './lib/configInit.js';
 import { setupWatcher } from './lib/watcher.js'; 
 
+process.on('uncaughtException', (err) => {
+    console.error(chalk.red('\n[ ⚠️ ERRORE FATALE IGNORATO ] Uncaught Exception:'), err.message || err);
+});
+
+process.on('unhandledRejection', (reason) => {
+    console.error(chalk.red('\n[ ⚠️ ERRORE FATALE IGNORATO ] Unhandled Rejection:'), reason);
+});
+
 async function startBot() {
     checkConfig(); 
     
@@ -45,7 +53,6 @@ async function startBot() {
     const pluginsFolder = path.join(process.cwd(), 'plugins');
 
     setupWatcher(pluginsFolder);
-
 
     const conn = makeWASocket({ 
         version,
@@ -175,8 +182,14 @@ async function startBot() {
         }
         if (connection === 'close') {
             const reason = lastDisconnect?.error?.output?.statusCode || lastDisconnect?.error?.code;
+            console.log(chalk.yellow(`\n[ 🔄 DISCONNESSO ] Motivo: ${reason}. Riconnessione in corso...`));
+            
             if (reason !== DisconnectReason.loggedOut) {
-                startBot(); 
+                setTimeout(() => {
+                    startBot(); 
+                }, 3000);
+            } else {
+                console.log(chalk.red('\n[ ❌ LOGGED OUT ] Sessione invalidata. Elimina la cartella della sessione e scansiona di nuovo il QR.'));
             }
         }
     });
@@ -184,4 +197,4 @@ async function startBot() {
     return conn;
 }
 
-startBot();
+startBot().catch(e => console.error(chalk.red('\n[ ERRORE AVVIO FATALE ]'), e));

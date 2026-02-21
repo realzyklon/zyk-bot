@@ -16,6 +16,7 @@ const handler = async (m, { conn }) => {
     const totalMem = (os.totalmem() / 1073741824).toFixed(2)
     const freeMem = (os.freemem() / 1073741824).toFixed(2)
     const usedMem = (totalMem - freeMem).toFixed(2)
+    const nodeMem = (process.memoryUsage().rss / 1048576).toFixed(2)
     const versione = packageJson.version || '1.0.0'
     const foto = global.immagini[Math.floor(Math.random() * global.immagini.length)]
 
@@ -29,7 +30,8 @@ const handler = async (m, { conn }) => {
     const response = `
   ╭┈  『 🚀 』 ` + "`latenza` ─ " + ` *_${lattenza}ms_*
   ┆  『 🕒 』 ` + "`uptime` ─ " + ` *_${uptime}_*
-  ┆  『 📊 』 ` + "`ram` ─ " + ` *_${usedMem} / ${totalMem} GB_*
+  ┆  『 📊 』 ` + "`ram os` ─ " + ` *_${usedMem} / ${totalMem} GB_*
+  ┆  『 🤖 』 ` + "`ram bot` ─ " + ` *_${nodeMem} MB_*
   ┆  『 📂 』 ` + "`ssd` ─ " + ` *_${ssdInfo}_*
   ┆  『 ⚙️ 』 ` + "`node` ─ " + ` *_${nodeVersion}_*
   ╰┈➤ 『 📦 』 ` + "`versione` ─ " + ` *_${versione}_*
