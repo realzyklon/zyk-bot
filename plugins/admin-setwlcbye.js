@@ -29,6 +29,7 @@ let handler = async (m, { text, command, usedPrefix }) => {
 }
 
 handler.command = /^(setwelcome|setbye|setaddio)$/i
+handler.tags = ['admin']
 handler.admin = true
 handler.group = true
 

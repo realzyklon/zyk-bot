@@ -17,6 +17,7 @@ let handler = async (m, { conn }) => {
 }
 
 handler.command = /^(del|delete|elimina)$/i
+handler.tags = ['admin']
 handler.admin = true
 handler.group = true
 

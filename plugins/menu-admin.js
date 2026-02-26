@@ -5,53 +5,54 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner }) => {
   const jid = m.chat;
 
   const tagMapping = {
-      'fun': '🕹️ DIVERTIMENTO',
-      'rpg': '⚔️ GESTIONALE RPG',
-      'casino': '🎰 CASINO & AZZARDO'
+      'admin': '🛡️ COMANDI ADMIN',
+      'gruppo': '👥 GESTIONE GRUPPO',
+      'impostazioni': '⚙️ IMPOSTAZIONI',
+      'owner': '👑 COMANDI OWNER'
   };
 
-  let help = Object.values(global.plugins).filter(plugin => !plugin.disabled).map(plugin => {
+  let help = Object.values(global.plugins).filter(plugin => !plugin.disabled && plugin.admin).map(plugin => {
       return {
-          help: Array.isArray(plugin.tags) ? plugin.help : [plugin.help],
+          help: Array.isArray(plugin.help) ? plugin.help : [plugin.help],
           tags: Array.isArray(plugin.tags) ? plugin.tags : [plugin.tags],
           prefix: 'customPrefix' in plugin,
           enabled: !plugin.disabled,
       }
   });
 
+  let allTags = [...new Set(help.flatMap(p => p.tags))].filter(Boolean);
+
   let menuContent = '';
-  for (let tag in tagMapping) {
+  for (let tag of allTags) {
       let groups = help.filter(plugin => plugin.tags && plugin.tags.includes(tag));
       if (groups.length === 0) continue;
 
-      menuContent += `  ╭┈  『 ${tagMapping[tag]} 』\n`;
+      let tagName = tagMapping[tag] || `🛠️ ${tag.toUpperCase()}`;
+      
+      menuContent += `╭┈  『 ${tagName} 』\n`;
       for (let plugin of groups) {
           if (plugin.help) {
               for (let h of plugin.help) {
-                  if (h) menuContent += `  ┆  ◦ ${usedPrefix}${h}\n`;
+                  if (h) menuContent += `┆  ◦ ${usedPrefix}${h}\n`;
               }
           }
       }
-      menuContent += `  ╰┈➤\n\n`;
+      menuContent += `╰┈➤\n\n`;
   }
 
   let caption = `
-  ╭┈  『 🎮 』 \`GAMES CENTER\`
-  ┆  *Benvenuto nella sala giochi!*
-  ┆  Seleziona un'attività dalla lista
-  ┆  o usa i bottoni rapidi.
+  ╭┈  『 🛡️ 』 \`ADMIN PANEL\`
+  ┆  *Pannello di Controllo*
+  ┆  Qui trovi tutti i comandi
+  ┆  riservati agli amministratori.
   ╰┈➤
 
-  ${menuContent.trim()}`;
+${menuContent.trim()}`;
 
   const buttons = [
     {
       name: "quick_reply",
-      buttonParamsJson: JSON.stringify({ display_text: "👛 PORTAFOGLIO", id: `${usedPrefix}wallet` })
-    },
-    {
-      name: "quick_reply",
-      buttonParamsJson: JSON.stringify({ display_text: "💼 LAVORI", id: `${usedPrefix}lavoro` })
+      buttonParamsJson: JSON.stringify({ display_text: "⚙️ IMPOSTAZIONI", id: `${usedPrefix}funzioni` })
     },
     {
       name: "quick_reply",
@@ -63,14 +64,14 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner }) => {
     viewOnceMessage: {
       message: {
         interactiveMessage: {
-          header: { title: "◯  𐙚  *──  g i o c h i  ──*", hasVideoMessage: false },
+          header: { title: "◯  𐙚  *──  a d m i n  ──*", hasVideoMessage: false },
           body: { text: caption },
           nativeFlowMessage: { buttons: buttons },
           contextInfo: {
             ...global.newsletter().contextInfo,
             mentionedJid: [m.sender],
             isForwarded: true,    
-            stanzaId: 'zyklonGames',
+            stanzaId: 'zyklonAdmin',
             participant: '0@s.whatsapp.net',
             quotedMessage: {
                 contactMessage: {
@@ -87,8 +88,9 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner }) => {
   return await conn.relayMessage(jid, msg, {});
 };
 
-handler.help = ['giochi', 'games'];
+handler.help = ['menuadmin', 'admin'];
 handler.tags = ['main'];
-handler.command = ['giochi', 'games', 'menu-giochi'];
+handler.command = ['menuadmin', 'admin', 'adminmenu'];
+handler.group = true; 
 
 export default handler;

@@ -118,7 +118,7 @@ const handler = async (m, { conn, text }) => {
 }
 
 handler.help = ['quote']
-handler.tags = ['tools']
+handler.tags = ['fun']
 handler.command = ['q', 'quote', 'cit']
 
 export default handler

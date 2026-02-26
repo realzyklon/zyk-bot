@@ -42,7 +42,7 @@ var handler = async (m, { conn, text, command }) => {
 };
 
 handler.help = ['promuovi', 'retrocedi', 'p', 'r'];
-handler.tags = ['gruppo'];
+handler.tags = ['admin'];
 handler.command = ['promote', 'promuovi', 'p', 'demote', 'retrocedi', 'r'];
 handler.group = true;
 handler.admin = true;

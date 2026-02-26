@@ -20,16 +20,19 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner }) => {
   const buttons = [
     {
       name: "quick_reply",
-      buttonParamsJson: JSON.stringify({ display_text: "🛡️ ADMIN", id: `${usedPrefix}funzioni` })
+      buttonParamsJson: JSON.stringify({ display_text: "🛡️ FUNZIONI", id: `${usedPrefix}funzioni` })
+    },{
+      name: "quick_reply",
+      buttonParamsJson: JSON.stringify({ display_text: "🛡️ ADMIN", id: `${usedPrefix}menuadmin` })
     },
     {
       name: "quick_reply",
       buttonParamsJson: JSON.stringify({ display_text: "🎮 GIOCHI", id: `${usedPrefix}menu-giochi` })
     },
-    {
+   /* {
       name: "quick_reply",
       buttonParamsJson: JSON.stringify({ display_text: "🚀 SPEED TEST", id: `${usedPrefix}ping` })
-    }
+    } */
   ];
 
   const msg = {

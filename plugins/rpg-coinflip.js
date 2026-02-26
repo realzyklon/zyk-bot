@@ -83,7 +83,7 @@ const handler = async (m, { conn, args, usedPrefix, command }) => {
 }
 
 handler.help = ['coinflip <testa/croce> [importo]']
-handler.tags = ['rpg', 'fun']
+handler.tags = ['rpg']
 handler.command = ['coinflip', 'testacroce', 'flip', 'cf']
 
 export default handler
