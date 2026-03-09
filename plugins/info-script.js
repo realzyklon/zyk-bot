@@ -62,7 +62,7 @@ const handler = async (m, { conn, usedPrefix }) => {
         .repo-name { font-size: 28px; font-weight: 700; color: #58a6ff; letter-spacing: -1px; }
         .badge { 
             font-size: 12px; font-weight: 600; padding: 3px 10px; 
-            background: rgba(45, 51, 59, 0.6); border: 1px solid #30363d;
+            background: rgba(59, 56, 45, 0.6); border: 1px solid #30363d;
             border-radius: 20px; color: #8b949e;
         }
         .description { font-size: 17px; line-height: 1.6; color: #8b949e; margin-bottom: 35px; max-width: 90%; }
@@ -79,9 +79,9 @@ const handler = async (m, { conn, usedPrefix }) => {
             <div class="content">
                 <div class="header">
                     <span class="repo-name">${repoPath}</span>
-                    <span class="badge">public</span>
+                    <span class="badge">⚠️ private</span>
                 </div>
-                <div class="description">Bot WhatsApp modulare, rapido e personalizzabile.</div>
+                <div class="description">miglior bot zozzapp in italia!!!</div>
                 <div class="footer">
                     <div class="stat-item"><span class="lang-dot"></span> JavaScript</div>
                     <div class="stat-item">⭐ ${stars}</div>
@@ -101,7 +101,7 @@ const handler = async (m, { conn, usedPrefix }) => {
         fs.writeFileSync(tmpFile, Buffer.from(response.data))
 
         const ownerNum = global.owner[0][0]
-        const mainText = `『 🚀 』 *BOT SCRIPT*\n\n👤 *Owner:* @${ownerNum}\n⭐ *Stars:* ${stars}\n🍴 *Forks:* ${forks}`
+        const mainText = `『 🚀 』 *BOT SCRIPT*\n\n👤 *Owner:* @${ownerNum}\n⭐ *Stars:* ${stars}\n🍴 *Forks:* ${forks}\n\n> [⚠️] il bot è attualmente privato, quindi la repo risulterà come "non disponibile".`
 
         await conn.sendMessage(m.chat, {
             text: mainText,

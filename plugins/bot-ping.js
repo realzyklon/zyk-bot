@@ -41,5 +41,5 @@ function formatUptime(ms) {
     return `${d}g ${h}h ${m}m ${s}s`
 }
 
-handler.command = ['ping']
+handler.command = ['ping','pong']
 export default handler

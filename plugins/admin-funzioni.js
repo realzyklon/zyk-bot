@@ -11,7 +11,7 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin }) =
     let botSettings = global.db.data.settings[botId]
 
     const adminFeatures = [
-        { key: 'welcome', name: 'welcome' },
+        { key: 'benvenuto', name: 'benvenuto'},
         { key: 'rileva', name: 'rileva' },
         { key: 'antiwhatsapp', name: 'antiwhatsapp' },
         { key: 'antitelegram', name: 'antitelegram' },
@@ -121,7 +121,7 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin }) =
 
 handler.help = ['funzioni', 'attiva <funzione>', 'disattiva <funzione>']
 handler.tags = ['admin']
-handler.command = ['funzioni', 'attiva', 'disattiva', 'on', 'off', 'enable', 'disable']
+handler.command = ['funzioni', 'attiva', '1', 'disattiva', 'on', 'off', 'enable', 'disable', '0']
 handler.group = true
 
 export default handler

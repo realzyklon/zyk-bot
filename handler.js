@@ -205,7 +205,6 @@ export default async function handler(conn, chatUpdate) {
             }
         }
       
-
         let isAdmin = false
         let isBotAdmin = false
         let isRealAdmin = false 
@@ -352,6 +351,16 @@ export default async function handler(conn, chatUpdate) {
             try { await rispondiGemini(m, { conn, isOwner }) } catch (e) {}
         }
 
+        for (let name in global.plugins) {
+            let plugin = global.plugins[name]
+            if (!plugin) continue
+            if (typeof plugin.before === 'function') {
+                try {
+                    await plugin.before(m, { conn, isOwner, isAdmin, isBotAdmin, participants, groupAdmins, isGroup })
+                } catch (e) {}
+            }
+        }
+
         const messageText = m.text || ''
         let usedPrefix = ''
         const _prefix = global.prefix
@@ -382,10 +391,24 @@ export default async function handler(conn, chatUpdate) {
                     continue
                 }
 
+                const isPremium = global.db.data.users[sender]?.premium || false
+                const isVip = isGroup ? (global.db.data.groups[jid]?.vips || []).includes(sender) : false
+
+                if (plugin.premium && !isPremium && !isOwner) { 
+                    await global.dfail('premium', m, conn); continue 
+                }
+                if (plugin.vip && !isVip && !isPremium && !isOwner) { 
+                    await global.dfail('vip', m, conn); continue 
+                }
+
+                let isAllowedAdmin = isAdmin || isOwner
+                if (plugin.vip && (isVip || isPremium)) isAllowedAdmin = true
+                if (plugin.premium && isPremium) isAllowedAdmin = true
+
+                if (plugin.admin && !isAllowedAdmin) { await global.dfail('admin', m, conn); continue }
                 if (plugin.owner && !isOwner) { await global.dfail('owner', m, conn); continue }
                 if (plugin.group && !isGroup) { await global.dfail('group', m, conn); continue }
                 if (plugin.private && isGroup) { await global.dfail('private', m, conn); continue }
-                if (plugin.admin && !isAdmin) { await global.dfail('admin', m, conn); continue }
                 if (plugin.botAdmin && !isBotAdmin) { await global.dfail('botAdmin', m, conn); continue }
 
                 try {
@@ -462,7 +485,9 @@ global.dfail = async (type, m, conn, extra = {}) => {
         admin: '`𐔌🛡️ ꒱` _*Solo gli amministratori del gruppo possono usare questo comando!*_',
         group: '`𐔌👥 ꒱` _*Questo comando può essere usato solo in chat di gruppo!*_',
         private: '`𐔌📩 ꒱` _*Questo comando può essere usato solo in chat privata!*_',
-        botAdmin: '`𐔌🤖 ꒱` _*Devo essere admin per eseguire questo comando!*_'
+        botAdmin: '`𐔌🤖 ꒱` _*Devo essere admin per eseguire questo comando!*_',
+        premium: '`𐔌🌟 ꒱` _*Questo comando è riservato agli utenti Premium!*_',
+        vip: '`𐔌💎 ꒱` _*Questo comando è riservato ai VIP di questo gruppo o ai Premium!*_'
     }
 
     if (msgTexts[type]) {

@@ -74,4 +74,5 @@ const handler = async (m, { conn }) => {
 
 handler.command = ['admin', 'admins']
 handler.group = true
+handler.restricted = true
 export default handler

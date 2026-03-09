@@ -2,20 +2,13 @@ import axios from 'axios'
 import fs from 'fs'
 import { join } from 'path'
 import { formatNum } from '../lib/numberfix.js'
+import { detectDevice } from '../lib/device.js'
 
 const BROWSERLESS_KEY = global.APIKeys?.browserless
 const LASTFM_API_KEY = global.APIKeys?.lastfm
 const tmpDir = './media/tmp/info'
 const lastfmPath = './media/lastfm.json'
 const defCover = 'https://i.ibb.co/6fs5B1V/triplo3.jpg'
-
-const getDevice = (m) => {
-    const id = m.key.id
-    if (id.length > 21) return 'Android'
-    if (id.substring(0, 2) === '3A') return 'iOS'
-    if (id.length < 20) return 'Desktop / Web'
-    return 'WhatsApp'
-}
 
 async function apiCall(method, params) {
     try {
@@ -30,7 +23,11 @@ const handler = async (m, { conn, usedPrefix }) => {
     if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true })
     if (!fs.existsSync(lastfmPath)) fs.writeFileSync(lastfmPath, JSON.stringify({}))
     
-    const device = getDevice(m)
+    let rawDevice = detectDevice(m.key.id)
+    let device = rawDevice.charAt(0).toUpperCase() + rawDevice.slice(1)
+    if (rawDevice === 'ios') device = 'iOS'
+    if (rawDevice === 'unknown') device = 'Sconosciuto'
+
     const jid = m.quoted ? m.quoted.sender : m.mentionedJid && m.mentionedJid[0] ? m.mentionedJid[0] : m.sender
     const number = jid.split('@')[0]
     const nomeUtente = m.pushName || (conn.getName ? await conn.getName(jid) : number)

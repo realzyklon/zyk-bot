@@ -31,7 +31,7 @@ const handler = async (m, { conn }) => {
             m.chat,
             {
                 text: `*${groupName}*`,
-                footer: '𝓿𝓪𝓻𝓮𝓫𝓸𝓽',
+                footer: 'ꪶ 𖤓 ꫂ',
                 cards: [linkCard]
             },
             { quoted: m }
