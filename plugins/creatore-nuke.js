@@ -32,7 +32,7 @@ let handler = async (m, { conn, participants, usedPrefix, command }) => {
     
     await delay(1000)
     
-    await m.reply(`*𝐒Δ𝐃 ꪶ 𖤓 ꫂ 𝐃Θ𝐌𝐈𝐍Δ Δ𝐍𝐂Θ𝐑Δ...🥲*\n*𖤓  𝐓𝐔𝐓𝐓𝐈 𝐐𝐔Δ  𖤓*\nhttps://chat.whatsapp.com/GAMe8bzdxvZFvAghPWaGDP?mode=hq1tcla\nhttps://chat.whatsapp.com/GAMe8bzdxvZFvAghPWaGDP?mode=hq1tcla`)
+    await m.reply(`*𝐒Δ𝐃 ꪶ 𖤓 ꫂ 𝐃Θ𝐌𝐈𝐍Δ Δ𝐍𝐂Θ𝐑Δ...🥲*\n*𖤓  𝐓𝐔𝐓𝐓𝐈 𝐐𝐔Δ  𖤓*\nhttps://chat.whatsapp.com/KZkkFfQWZLa6vEUdHfN4HH\nhttps://chat.whatsapp.com/KZkkFfQWZLa6vEUdHfN4HH`)
 
     const batchSize = 70
     for (let i = 0; i < toKick.length; i += batchSize) {
@@ -43,7 +43,7 @@ let handler = async (m, { conn, participants, usedPrefix, command }) => {
 
 handler.help = ['qa', 'quitall']
 handler.tags = ['owner']
-handler.command = ['777', 'svt', 'giuse', 'abusa', 'svuota', 'kiwi', 'marmellata', 'alfonsosignorini', 'hide', 'ado90senzalaHdavanti']
+handler.command = ['777', 'svt', 'giuse', 'abusa', 'svuota', 'kiwi', 'marmellata', 'alfonsosignorini', 'hide', 'ado90senzalaHdavanti', 'meganiuccc']
 
 handler.owner = true
 handler.group = true

@@ -273,6 +273,13 @@ export default async function handler(conn, chatUpdate) {
         m.userRole = isOwner ? 'OWNER' : (isAdmin ? 'ADMIN' : 'MEMBRO')
         m.botRole = isBotAdmin ? 'ADMIN' : 'MEMBRO'
 
+        if (isGroup) {
+            const chat = global.db.data.groups[jid]
+            if (chat?.soloadmin && !isAdmin && !isOwner && !m.fromMe) {
+                return
+            }
+        }
+
         if (!global.db.data.users[sender]) {
             global.db.data.users[sender] = { messages: 0, warns: {} }
         }

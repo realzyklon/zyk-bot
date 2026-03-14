@@ -140,4 +140,5 @@ let handler = async (m, { conn, command, args, usedPrefix }) => {
 }
 
 handler.command = ['play']
+handler.restricted = true
 export default handler

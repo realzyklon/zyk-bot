@@ -13,6 +13,7 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isAdmin }) =
     const adminFeatures = [
         { key: 'benvenuto', name: 'benvenuto'},
         { key: 'rileva', name: 'rileva' },
+        { key: 'soloadmin', name: 'soloadmin' },
         { key: 'antiwhatsapp', name: 'antiwhatsapp' },
         { key: 'antitelegram', name: 'antitelegram' },
         { key: 'antinsta', name: 'antinsta' },
