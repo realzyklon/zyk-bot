@@ -10,6 +10,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     let mtype = q.mtype || Object.keys(q.message || {})[0] || ''
     let msgNode = q.message || q.msg || {}
 
+    // Supporto per ViewOnce e messaggi interattivi/documenti
     while (['viewOnceMessage', 'viewOnceMessageV2', 'documentWithCaptionMessage', 'interactiveMessage', 'templateMessage', 'buttonsMessage'].includes(mtype)) {
         if (mtype === 'viewOnceMessage' || mtype === 'viewOnceMessageV2') {
             msgNode = msgNode[mtype]?.message || msgNode
@@ -19,16 +20,6 @@ const handler = async (m, { conn, usedPrefix, command }) => {
             mtype = msgNode.hasMediaAttachment && msgNode.imageMessage ? 'imageMessage' 
                   : msgNode.videoMessage ? 'videoMessage' 
                   : mtype
-            if (mtype === 'imageMessage') msgNode = { imageMessage: msgNode.imageMessage }
-            if (mtype === 'videoMessage') msgNode = { videoMessage: msgNode.videoMessage }
-        } else if (mtype === 'templateMessage') {
-            msgNode = msgNode[mtype]?.hydratedTemplate || msgNode
-            mtype = msgNode.imageMessage ? 'imageMessage' : msgNode.videoMessage ? 'videoMessage' : mtype
-            if (mtype === 'imageMessage') msgNode = { imageMessage: msgNode.imageMessage }
-            if (mtype === 'videoMessage') msgNode = { videoMessage: msgNode.videoMessage }
-        } else if (mtype === 'buttonsMessage') {
-            msgNode = msgNode[mtype]
-            mtype = msgNode.imageMessage ? 'imageMessage' : msgNode.videoMessage ? 'videoMessage' : mtype
             if (mtype === 'imageMessage') msgNode = { imageMessage: msgNode.imageMessage }
             if (mtype === 'videoMessage') msgNode = { videoMessage: msgNode.videoMessage }
         } else if (mtype === 'documentWithCaptionMessage') {
@@ -54,8 +45,9 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     const mediaDir = path.join(process.cwd(), 'media', 'tosticker')
     if (!fs.existsSync(mediaDir)) fs.mkdirSync(mediaDir, { recursive: true })
     
-    const tmpIn = path.join(mediaDir, `temp_${Date.now()}${ext}`)
-    const tmpOut = path.join(mediaDir, `temp_${Date.now()}.webp`)
+    const timestamp = Date.now()
+    const tmpIn = path.join(mediaDir, `temp_${timestamp}${ext}`)
+    const tmpOut = path.join(mediaDir, `temp_${timestamp}.webp`)
 
     try {
         const stream = await downloadContentFromMessage(mediaObj, mtype.replace('Message', ''))
@@ -65,9 +57,12 @@ const handler = async (m, { conn, usedPrefix, command }) => {
         if (!media || media.length === 0) throw new Error('Download fallito')
         fs.writeFileSync(tmpIn, media)
 
+        // FFmpeg: scala a 512, rende lo sfondo trasparente se necessario, e tronca a 7 secondi per i video
+        // -t 7: tronca la durata a 7 secondi
+        // -vf "scale=512:512...": forza le dimensioni e mantiene l'aspect ratio con padding nero/trasparente
         const ffmpegArgs = isVideo 
-            ? `-vcodec libwebp -filter:v "scale=512:512" -preset default -loop 0 -an -t 10`
-            : `-vcodec libwebp -filter:v "scale=512:512" -preset default -loop 0 -an`
+            ? `-vcodec libwebp -filter:v "scale='if(gt(iw,ih),512,-1)':'if(gt(iw,ih),-1,512)',pad=512:512:(512-iw)/2:(512-ih)/2:black@0" -pix_fmt yuva420p -compression_level 6 -q:v 40 -loop 0 -an -t 7 -preset default`
+            : `-vcodec libwebp -filter:v "scale='if(gt(iw,ih),512,-1)':'if(gt(iw,ih),-1,512)',pad=512:512:(512-iw)/2:(512-ih)/2:black@0" -compression_level 6 -q:v 50 -preset default`
 
         exec(`ffmpeg -i "${tmpIn}" ${ffmpegArgs} "${tmpOut}"`, async (err, stdout, stderr) => {
             if (fs.existsSync(tmpIn)) fs.unlinkSync(tmpIn)
@@ -89,7 +84,7 @@ const handler = async (m, { conn, usedPrefix, command }) => {
     } catch (e) {
         if (fs.existsSync(tmpIn)) fs.unlinkSync(tmpIn)
         if (fs.existsSync(tmpOut)) fs.unlinkSync(tmpOut)
-        return conn.sendMessage(m.chat, { text: `╭┈  『 ❌ 』 \`errore\`\n╰┈➤ Errore download.`, ...extra }, { quoted: m })
+        return conn.sendMessage(m.chat, { text: `╭┈  『 ❌ 』 \`errore\`\n╰┈➤ Errore durante l'elaborazione.`, ...extra }, { quoted: m })
     }
 }
 

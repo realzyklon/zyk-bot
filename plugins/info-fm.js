@@ -74,5 +74,5 @@ const handler = async (m, { conn, usedPrefix }) => {
     }
 }
 
-handler.command = ['cur', 'nowplaying']
+handler.command = ['fm', 'nowplaying']
 export default handler

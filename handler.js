@@ -121,6 +121,20 @@ function getOwnerJids() {
     return { dynamicOwners }
 }
 
+function getModeratori() {
+    const modPath = path.join(process.cwd(), 'media', 'moderatori.json')
+    try {
+        const data = JSON.parse(fs.readFileSync(modPath, 'utf-8'))
+        return data.moderatori || []
+    } catch (e) { return [] }
+}
+
+function isModeratore(jid) {
+    const mods = getModeratori()
+    const normalized = decodeJid(jid)
+    return mods.some(m => decodeJid(m) === normalized)
+}
+
 function isOwnerNum(num) {
     const clean = num.replace(/[^0-9]/g, '')
     const { dynamicOwners } = getOwnerJids()
@@ -340,6 +354,8 @@ export default async function handler(conn, chatUpdate) {
         m.senderJid = sender
         const { dynamicOwners } = getOwnerJids()
         const isOwner = isOwnerJid(sender, dynamicOwners)
+        const isMod = !isOwner && isModeratore(sender)
+
         if (!isGroup) isAdmin = isOwner
 
         const bannedPath = path.join(process.cwd(), 'media', 'banned.json')
@@ -350,9 +366,10 @@ export default async function handler(conn, chatUpdate) {
         m.isAdmin = isAdmin
         m.isBotAdmin = isBotAdmin
         m.isOwner = isOwner
+        m.isMod = isMod
         m.isRealAdmin = isRealAdmin
         m.groupAdmins = groupAdmins
-        m.userRole = isOwner ? 'OWNER' : (isAdmin ? 'ADMIN' : 'MEMBRO')
+        m.userRole = isOwner ? 'OWNER' : (isMod ? 'MOD' : (isAdmin ? 'ADMIN' : 'MEMBRO'))
 
         if (!global.db.data.users[sender]) global.db.data.users[sender] = { messages: 0, warns: {} }
         global.db.data.users[sender].messages += 1
@@ -410,6 +427,7 @@ export default async function handler(conn, chatUpdate) {
                 if (plugin.disabled) continue
                 if (plugin.admin && !isAdmin && !isOwner) { await global.dfail('admin', m, conn); continue }
                 if (plugin.owner && !isOwner) { await global.dfail('owner', m, conn); continue }
+                if (plugin.mod && !isMod && !isOwner) { await global.dfail('mod', m, conn); continue }
                 if (plugin.group && !isGroup) { await global.dfail('group', m, conn); continue }
                 if (plugin.botAdmin && !isBotAdmin) { await global.dfail('botAdmin', m, conn); continue }
                 try {
@@ -425,6 +443,7 @@ global.dfail = async (type, m, conn) => {
     const msgTexts = {
         owner: '`𐔌👑꒱ ` _*Solo il proprietario può usare questo comando!*_',
         admin: '`𐔌🛡️ ꒱ ` _*Solo gli amministratori possono usare questo comando!*_',
+        mod: '`𐔌🔰꒱ ` _*Solo i moderatori possono usare questo comando!*_',  
         group: '`𐔌👥 ꒱ ` _*Questo comando funziona solo nei gruppi!*_',
         botAdmin: '`𐔌🤖 ꒱ ` _*Devo essere admin per farlo!*_'
     }
